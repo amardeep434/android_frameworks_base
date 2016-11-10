@@ -3791,6 +3791,12 @@ public final class Settings {
         public static final String SCREENSHOT_TYPE = "screenshot_type";
 
         /**
+         * Change the delay when a screenshot is taken
+         * @hide
+         */
+        public static final String SCREENSHOT_DELAY = "screenshot_delay";
+
+        /**
          * Network traffic indicator, goes from least to greatest significant bitwise
          * 0 = Display up-stream traffic if set
          * 1 = Display down-stream traffic if set
@@ -3928,6 +3934,13 @@ public final class Settings {
          * @hide
          */
         public static final String VOLUME_ROCKER_WAKE = "volume_rocker_wake";
+
+        /**
+         * Volume key controls ringtone or media sound stream
+         * @hide
+         */
+        public static final String VOLUME_KEYS_CONTROL_MEDIA_STREAM =
+                "volume_keys_control_media_stream";
 
         /**
          * Whether or not volume button music controls should be enabled to seek media tracks
@@ -5741,6 +5754,13 @@ public final class Settings {
          */
         @Deprecated
         public static final String LOCK_PATTERN_VISIBLE = "lock_pattern_visible_pattern";
+
+        /**
+         * Disable expanding quick settings on secure lock screens
+         *
+         * @hide
+         */
+        public static final String LOCK_QS_DISABLED = "lockscreen_qs_disabled";
 
         /**
          * Whether lock pattern will vibrate as user enters (0 = false, 1 =

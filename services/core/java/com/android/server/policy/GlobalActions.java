@@ -150,6 +150,8 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private final boolean mShowSilentToggle;
     private static boolean mTorchEnabled = false;
 
+    private int mScreenshotDelay;
+
     /**
      * @param context everything needs a context :(
      */
@@ -183,6 +185,9 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         mShowSilentToggle = SHOW_SILENT_TOGGLE && !mContext.getResources().getBoolean(
                 com.android.internal.R.bool.config_useFixedVolume);
+
+        // Set the initial status of airplane mode toggle
+        mAirplaneState = getUpdatedAirplaneToggleState();
     }
 
     /**
@@ -216,6 +221,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
     private void handleShow() {
         awakenIfNecessary();
+        checkSettings();
         mDialog = createDialog();
         prepareDialog();
         WindowManager.LayoutParams attrs = mDialog.getWindow().getAttributes();
@@ -831,6 +837,13 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                         msg.replyTo = new Messenger(h);
                         msg.arg1 = msg.arg2 = 0;
 
+                        // Needs delay or else we'll be taking a screenshot of the dialog each time
+                        try {
+                            Thread.sleep(mScreenshotDelay);
+                        } catch (InterruptedException ie) {
+                            // Do nothing
+                        }
+
                         // Take the screenshot
                         try {
                             messenger.send(msg);
@@ -1439,15 +1452,17 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
         }
     };
 
+    private ToggleAction.State getUpdatedAirplaneToggleState() {
+        return (Settings.Global.getInt(mContext.getContentResolver(),
+                    Settings.Global.AIRPLANE_MODE_ON, 0) == 1) ?
+                ToggleAction.State.On : ToggleAction.State.Off;
+    }
+
     private void onAirplaneModeChanged() {
         // Let the service state callbacks handle the state.
         // if (mHasTelephony) return;
 
-        boolean airplaneModeOn = Settings.Global.getInt(
-                mContext.getContentResolver(),
-                Settings.Global.AIRPLANE_MODE_ON,
-                0) == 1;
-        mAirplaneState = airplaneModeOn ? ToggleAction.State.On : ToggleAction.State.Off;
+        mAirplaneState = getUpdatedAirplaneToggleState();
         mAirplaneModeOn.updateState(mAirplaneState);
     }
 
@@ -1606,5 +1621,10 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             }
             return super.onKeyUp(keyCode, event);
         }
+    }
+
+    private void checkSettings() {
+        mScreenshotDelay = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.SCREENSHOT_DELAY, 1000);
     }
 }

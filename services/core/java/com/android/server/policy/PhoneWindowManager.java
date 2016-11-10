@@ -721,6 +721,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     private int mCurrentUserId;
 
+    private int mScreenshotDelay;
+
     // Maps global key codes to the components that will handle them.
     private GlobalKeyManager mGlobalKeyManager;
 
@@ -1120,6 +1122,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 && (event.getFlags() & KeyEvent.FLAG_FALLBACK) == 0) {
             mPowerKeyTriggered = true;
             mPowerKeyTime = event.getDownTime();
+            checkSettings();
             interceptScreenshotChord();
             interceptScreenrecordChord();
         }
@@ -1510,26 +1513,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     };
 
     private class ScreenshotRunnable implements Runnable {
-        private int mScreenshotFullscreen = TAKE_SCREENSHOT_FULLSCREEN;
-        private int mScreenshotSelectedRegion = TAKE_SCREENSHOT_SELECTED_REGION;
+        private int mScreenshotType = TAKE_SCREENSHOT_FULLSCREEN;
 
         public void setScreenshotType(int screenshotType) {
-	    if (Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.SCREENSHOT_TYPE, 0) == 1) {
-            mScreenshotSelectedRegion = screenshotType;
-            } else {
-            mScreenshotFullscreen = screenshotType;
-            }
+            mScreenshotType = screenshotType;
         }
 
         @Override
         public void run() {
-            if (Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.SCREENSHOT_TYPE, 0) == 1) {
-                takeScreenshot(mScreenshotSelectedRegion);
-            } else {
-                takeScreenshot(mScreenshotFullscreen);
-            }
+            takeScreenshot(mScreenshotType);
         }
     }
 
@@ -3432,14 +3424,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         } else if (keyCode == KeyEvent.KEYCODE_S && event.isMetaPressed()
                 && event.isCtrlPressed()) {
             if (down && repeatCount == 0) {
-                int selectedregion = TAKE_SCREENSHOT_SELECTED_REGION;
-                int fullscreen = TAKE_SCREENSHOT_FULLSCREEN;
-                if (Settings.System.getInt(mContext.getContentResolver(),
-                    Settings.System.SCREENSHOT_TYPE, 0) == 1) {
-                        mScreenshotRunnable.setScreenshotType(selectedregion);
-                } else {
-                        mScreenshotRunnable.setScreenshotType(fullscreen);
-                }
+                int type = (event.isShiftPressed() ||
+                    Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.SCREENSHOT_TYPE, 0) == 1) ?
+                    TAKE_SCREENSHOT_SELECTED_REGION : TAKE_SCREENSHOT_FULLSCREEN;
+                mScreenshotRunnable.setScreenshotType(type);
                 mHandler.post(mScreenshotRunnable);
                 return -1;
             }
@@ -5746,6 +5735,14 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         };
                         msg.replyTo = new Messenger(h);
                         msg.arg1 = msg.arg2 = 0;
+
+                        // Needs delay or else we'll be taking a screenshot of the dialog each time
+                        try {
+                            Thread.sleep(mScreenshotDelay);
+                        } catch (InterruptedException ie) {
+                            // Do nothing
+                        }
+
                         if (mStatusBar != null && mStatusBar.isVisibleLw())
                             msg.arg1 = 1;
                         if (mNavigationBar != null && mNavigationBar.isVisibleLw())
@@ -5956,6 +5953,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                             mScreenshotChordVolumeDownKeyConsumed = false;
                             cancelPendingPowerKeyAction();
                             cancelPendingScreenrecordChordAction();
+                            checkSettings();
                             interceptScreenshotChord();
                         }
                     } else {
@@ -8291,5 +8289,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         if (mKeyguardDelegate != null) {
             mKeyguardDelegate.dump(prefix, pw);
         }
+    }
+
+    private void checkSettings() {
+        mScreenshotDelay = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.SCREENSHOT_DELAY, 1000);
     }
 }

@@ -211,7 +211,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
     static final String TAG = "PhoneStatusBar";
     public static final boolean DEBUG = BaseStatusBar.DEBUG;
     public static final boolean SPEW = false;
-    public static final boolean DUMPTRUCK = true; // extra dumpsys info
+    public static final boolean DUMPTRUCK = false; // extra dumpsys info
     public static final boolean DEBUG_GESTURES = false;
     public static final boolean DEBUG_MEDIA = false;
     public static final boolean DEBUG_MEDIA_FAKE_ARTWORK = false;
@@ -482,6 +482,9 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
             resolver.registerContentObserver(Settings.System.getUriFor(
                    Settings.System.STATUS_BAR_SHOW_CARRIER),
                    false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                    Settings.Secure.LOCK_QS_DISABLED),
+                    false, this, UserHandle.USER_ALL);
            updateSettings();
         }
 
@@ -524,6 +527,10 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
 
             mShowCarrierLabel = Settings.System.getIntForUser(resolver,
                     Settings.System.STATUS_BAR_SHOW_CARRIER, 1, UserHandle.USER_CURRENT);
+
+            if (mNotificationPanel != null) {
+                mNotificationPanel.updateSettings();
+            }
         }
     }
 
